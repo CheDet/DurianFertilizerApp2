@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fertilizer Calculator</title>
+    <title data-lang-key="pageTitle">肥料计算器</title>
     <link rel="stylesheet" href="style.css">
     <script type="module" src="main.js" defer></script>
 </head>
@@ -11,25 +11,26 @@
 
     <div class="container">
         <div class="header">
-            <h1>Fertilizer Calculator</h1>
-            <button id="admin-panel-btn" class="btn">Admin Panel</button>
+            <h1 data-lang-key="appTitle">肥料计算器</h1>
+            <div>
+                <button id="admin-panel-btn" class="btn" data-lang-key="adminPanelBtn">管理面板</button>
+                <button id="lang-switcher" class="btn" style="margin-left: 10px;">English</button>
+            </div>
         </div>
 
         <!-- Master Fertilizer List -->
         <div class="card">
-            <h2>Available Fertilizers (Master List)</h2>
+            <h2 data-lang-key="masterListTitle">可用肥料 (主列表)</h2>
             <div id="master-list-container" class="table-container">
-                <!-- Master table will be rendered here by JS -->
-                <div class="loader">Loading master list...</div>
+                <div class="loader" data-lang-key="loadingMaster">正在加载主列表...</div>
             </div>
         </div>
 
         <!-- Saved Calculations -->
         <div class="card">
-            <h2>My Saved Calculations</h2>
+            <h2 data-lang-key="savedCalcsTitle">我保存的计算</h2>
             <div id="saved-calculations-list">
-                <!-- Saved calculations will be rendered here by JS -->
-                <div class="loader">Loading saved calculations...</div>
+                <div class="loader" data-lang-key="loadingSaved">正在加载已保存的计算...</div>
             </div>
         </div>
     </div>
@@ -38,27 +39,27 @@
     <div id="admin-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" data-modal-id="admin-modal">&times;</span>
-            <h2>Add New Fertilizer to Master List</h2>
+            <h2 data-lang-key="adminModalTitle">添加新肥料到主列表</h2>
             <form id="admin-form">
                 <div class="form-group">
-                    <label for="brand">Brand Name</label>
+                    <label for="brand" data-lang-key="brandLabel">品牌名称</label>
                     <input type="text" id="brand" required>
                 </div>
                 <div class="form-group">
-                    <label for="packetWeight">Packet Weight (kg)</label>
+                    <label for="packetWeight" data-lang-key="weightLabel">包装重量 (公斤)</label>
                     <input type="number" id="packetWeight" step="any" required>
                 </div>
                 <div class="form-group">
-                    <label for="packetPrice">Price per Packet (RM)</label>
+                    <label for="packetPrice" data-lang-key="priceLabel">每包价格 (RM)</label>
                     <input type="number" id="packetPrice" step="any" required>
                 </div>
                 <hr>
-                <h3>Nutrient Content (%)</h3>
+                <h3 data-lang-key="nutrientTitle">营养成分 (%)</h3>
                 <div id="admin-nutrient-list" class="nutrient-grid">
                     <!-- Nutrient fields for admin will be generated here -->
                 </div>
                 <br>
-                <button type="submit" class="btn">Save to Master List</button>
+                <button type="submit" class="btn" data-lang-key="saveToMasterBtn">保存到主列表</button>
             </form>
         </div>
     </div>
@@ -67,27 +68,27 @@
     <div id="calculation-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" data-modal-id="calculation-modal">&times;</span>
-            <h2 id="calculation-modal-title">New Calculation</h2>
+            <h2 id="calculation-modal-title">新计算</h2>
             <form id="calculation-form">
                 <input type="hidden" id="master-fertilizer-id">
                 <input type="hidden" id="calculation-id">
                 <div class="form-group">
-                    <label for="calculationName">Calculation Name (e.g., "Block A - Young Trees")</label>
+                    <label for="calculationName" data-lang-key="calcNameLabel">计算名称 (例如, "A区 - 幼树")</label>
                     <input type="text" id="calculationName" required>
                 </div>
                 <div class="form-group">
-                    <label for="trees">Number of Trees</label>
+                    <label for="trees" data-lang-key="treesLabel">树木数量</label>
                     <input type="number" id="trees" required>
                 </div>
                 <div class="form-group">
-                    <label for="rate">Fertilizer Rate (kg/tree)</label>
+                    <label for="rate" data-lang-key="rateLabel">施肥量 (公斤/棵)</label>
                     <input type="number" id="rate" step="any" required>
                 </div>
                 <div class="form-group">
-                    <label for="frequency">Applications per Year</label>
+                    <label for="frequency" data-lang-key="freqLabel">年施肥次数</label>
                     <input type="number" id="frequency" required>
                 </div>
-                <button type="submit" class="btn">Save Calculation</button>
+                <button type="submit" class="btn" data-lang-key="saveCalcBtn">保存计算</button>
             </form>
         </div>
     </div>
