@@ -1,10 +1,10 @@
-// main.js - CORRECTED VERSION
+// main.js - FINAL CORRECTED VERSION
 
 import { supabase } from './supabaseClient.js';
 
 // --- Global State ---
 let masterFertilizers = [];
-let userCalculations = []; // This was the missing piece for global state
+let userCalculations = [];
 let currentLang = localStorage.getItem('fertilizerAppLang') || 'zh';
 
 // --- Language Strings ---
@@ -116,21 +116,19 @@ const closeButtons = document.querySelectorAll('.close-btn');
 const PREDEFINED_NUTRIENTS = ['Nitrogen (N)', 'Phosphorus (P)', 'Potassium (K)', 'Calcium (Ca)', 'Magnesium (Mg)', 'Sulfur (S)', 'Iron (Fe)', 'Manganese (Mn)', 'Zinc (Zn)', 'Copper (Cu)', 'Boron (B)', 'Molybdenum (Mo)'];
 
 // --- LANGUAGE & RENDERING ---
-function setLanguage(lang) {
-    currentLang = lang;
-    localStorage.setItem('fertilizerAppLang', lang);
+function updateStaticText(lang) {
     document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
-
     document.querySelectorAll('[data-lang-key]').forEach(el => {
         const key = el.dataset.langKey;
         if (langStrings[lang][key]) {
             el.textContent = langStrings[lang][key];
         }
     });
-
     langSwitcherBtn.textContent = langStrings[lang].langSwitchTo;
-    
-    // Re-render all dynamic content with the new language
+}
+
+function renderAll() {
+    updateStaticText(currentLang);
     renderMasterFertilizerTable();
     renderUserCalculations();
 }
@@ -140,20 +138,20 @@ async function fetchMasterFertilizers() {
     const { data, error } = await supabase.from('fertilizers_master').select('*').order('brand');
     if (error) {
         console.error('Error fetching master fertilizers:', error);
-        masterListContainer.innerHTML = `<p>${langStrings[currentLang].errorLoading}</p>`;
+        masterListContainer.innerHTML = `<p>Error loading data.</p>`;
         return;
     }
-    masterFertilizers = data; // Store in global state
+    masterFertilizers = data;
 }
 
 async function fetchUserCalculations() {
     const { data, error } = await supabase.from('user_calculations').select('*, fertilizers_master(brand)').order('created_at', { ascending: false });
     if (error) {
         console.error('Error fetching user calculations:', error);
-        savedCalculationsList.innerHTML = `<p>${langStrings[currentLang].errorLoading}</p>`;
+        savedCalculationsList.innerHTML = `<p>Error loading data.</p>`;
         return;
     }
-    userCalculations = data; // Store in global state
+    userCalculations = data;
 }
 
 function renderMasterFertilizerTable() {
@@ -162,60 +160,55 @@ function renderMasterFertilizerTable() {
         masterListContainer.innerHTML = `<p>${s.noMasterFertilizers}</p>`;
         return;
     }
-
-    const table = document.createElement('table');
-    table.innerHTML = `
-        <thead>
-            <tr>
-                <th>${s.brandHeader}</th>
-                <th>${s.weightHeader}</th>
-                <th>${s.priceHeader}</th>
-                <th>${s.nutrientsHeader}</th>
-                <th>${s.actionHeader}</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${masterFertilizers.map(fert => `
+    const tableHTML = `
+        <table>
+            <thead>
                 <tr>
-                    <td>${fert.brand}</td>
-                    <td>${fert.packet_weight}</td>
-                    <td>${fert.packet_price.toFixed(2)}</td>
-                    <td>${fert.nutrients ? Object.keys(fert.nutrients).join(', ') : 'N/A'}</td>
-                    <td><button class="btn calc-btn" data-id="${fert.id}">${s.calculateBtn}</button></td>
+                    <th>${s.brandHeader}</th>
+                    <th>${s.weightHeader}</th>
+                    <th>${s.priceHeader}</th>
+                    <th>${s.nutrientsHeader}</th>
+                    <th>${s.actionHeader}</th>
                 </tr>
-            `).join('')}
-        </tbody>
-    `;
-    masterListContainer.innerHTML = '';
-    masterListContainer.appendChild(table);
+            </thead>
+            <tbody>
+                ${masterFertilizers.map(fert => `
+                    <tr>
+                        <td>${fert.brand}</td>
+                        <td>${fert.packet_weight}</td>
+                        <td>${fert.packet_price.toFixed(2)}</td>
+                        <td>${fert.nutrients ? Object.keys(fert.nutrients).join(', ') : 'N/A'}</td>
+                        <td><button class="btn calc-btn" data-id="${fert.id}">${s.calculateBtn}</button></td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>`;
+    masterListContainer.innerHTML = tableHTML;
 }
 
 function renderUserCalculations() {
     const s = langStrings[currentLang];
-     if (userCalculations.length === 0) {
+    if (userCalculations.length === 0) {
         savedCalculationsList.innerHTML = `<p>${s.noSavedCalcs}</p>`;
         return;
     }
     
     savedCalculationsList.innerHTML = userCalculations.map(calc => {
         const masterFert = masterFertilizers.find(f => f.id === calc.fertilizer_id);
-        if (!masterFert) return ''; 
+        if (!masterFert) return '';
 
         const results = calculateCosts(masterFert, calc);
-
         const inputItems = `
             <div class="detail-item"><strong>${calc.trees}</strong><span>${s.treesLabel}</span></div>
             <div class="detail-item"><strong>${calc.rate} kg</strong><span>${s.rateLabel}</span></div>
-            <div class="detail-item"><strong>${calc.frequency}</strong><span>${s.freqLabel}</span></div>
-        `;
+            <div class="detail-item"><strong>${calc.frequency}</strong><span>${s.freqLabel}</span></div>`;
         const resultItems = `
             <div class="detail-item"><strong>RM ${results.totalAnnualCost}</strong><span>${s.totalAnnualCost}</span></div>
             <div class="detail-item"><strong>RM ${results.annualCostPerTree}</strong><span>${s.annualCostPerTree}</span></div>
             <div class="detail-item"><strong>RM ${results.pricePerKg}</strong><span>${s.pricePerKg}</span></div>
             <div class="detail-item"><strong>${results.packetsAnnually}</strong><span>${s.packetsAnnually}</span></div>
             <div class="detail-item"><strong>${results.totalNeed} kg</strong><span>${s.totalNeed}</span></div>
-            <div class="detail-item"><strong>${results.pricePerKgNutrient ? `RM ${results.pricePerKgNutrient}` : 'N/A'}</strong><span>${s.pricePerKgNutrient}</span></div>
-        `;
+            <div class="detail-item"><strong>${results.pricePerKgNutrient ? `RM ${results.pricePerKgNutrient}` : 'N/A'}</strong><span>${s.pricePerKgNutrient}</span></div>`;
 
         return `
             <div class="calculation-entry" data-id="${calc.id}">
@@ -231,11 +224,9 @@ function renderUserCalculations() {
                         <button class="entry-btn delete-btn">${s.deleteBtn}</button>
                     </div>
                 </div>
-            </div>
-        `;
+            </div>`;
     }).join('');
 }
-
 
 // --- CALCULATION LOGIC (Unchanged) ---
 function calculateCosts(masterFertilizer, userInputs) {
@@ -269,7 +260,6 @@ function calculateCosts(masterFertilizer, userInputs) {
     };
 }
 
-
 // --- MODAL & FORM HANDLING ---
 function openModal(modal) { modal.style.display = 'flex'; }
 function closeModal(modal) { modal.style.display = 'none'; }
@@ -284,15 +274,16 @@ function setupAdminNutrientList() {
     `).join('');
 }
 
+// --- EVENT HANDLERS ---
+langSwitcherBtn.addEventListener('click', () => {
+    currentLang = currentLang === 'zh' ? 'en' : 'zh';
+    localStorage.setItem('fertilizerAppLang', currentLang);
+    renderAll();
+});
+
 adminPanelBtn.addEventListener('click', () => openModal(adminModal));
 closeButtons.forEach(btn => btn.addEventListener('click', () => closeModal(document.getElementById(btn.dataset.modalId))));
 window.addEventListener('click', (e) => { if (e.target.classList.contains('modal')) closeModal(e.target); });
-
-// --- EVENT HANDLERS ---
-langSwitcherBtn.addEventListener('click', () => {
-    const newLang = currentLang === 'zh' ? 'en' : 'zh';
-    setLanguage(newLang);
-});
 
 adminForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -317,14 +308,13 @@ adminForm.addEventListener('submit', async (e) => {
         alert(langStrings[currentLang].successSaving);
         adminForm.reset();
         closeModal(adminModal);
-        await fetchMasterFertilizers(); // Re-fetch and then render
+        await fetchMasterFertilizers();
         renderMasterFertilizerTable();
     }
 });
 
 calculationForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
     const calculationData = {
         fertilizer_id: parseInt(document.getElementById('master-fertilizer-id').value),
         calculation_name: document.getElementById('calculationName').value,
@@ -343,12 +333,11 @@ calculationForm.addEventListener('submit', async (e) => {
     } else {
         calculationForm.reset();
         closeModal(calculationModal);
-        await fetchUserCalculations(); // Re-fetch and then render
+        await fetchUserCalculations();
         renderUserCalculations();
     }
 });
 
-// Event Delegation for dynamic buttons
 document.addEventListener('click', async (e) => {
     if (e.target.classList.contains('calc-btn')) {
         const fertId = e.target.dataset.id;
@@ -373,7 +362,7 @@ document.addEventListener('click', async (e) => {
             if (error) {
                 alert(langStrings[currentLang].errorDeleting + error.message);
             } else {
-                await fetchUserCalculations(); // Re-fetch and then render
+                await fetchUserCalculations();
                 renderUserCalculations();
             }
         }
@@ -397,11 +386,9 @@ document.addEventListener('click', async (e) => {
 // --- INITIALIZATION ---
 async function init() {
     setupAdminNutrientList();
-    // 1. Fetch all data first
     await fetchMasterFertilizers();
     await fetchUserCalculations();
-    // 2. Now render the entire page in the correct language
-    setLanguage(currentLang);
+    renderAll();
 }
 
-init();
+init();```
