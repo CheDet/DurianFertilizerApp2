@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>肥料成本计算器 (Fertilizer Cost Calculator)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-bg: #f5f5f7;
+            --secondary-bg: #ffffff;
+            --text-color: #1d1d1f;
+            --subtle-text: #6e6e73;
+            --accent-color: #0071e3;
+            --border-color: #d2d2d7;
+            --danger-color: #d93636;
+            --edit-color: #f5a623;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --border-radius: 12px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                grid-template-columns: 450px 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--secondary-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 25px;
+        }
+
+        h1, h2, h3, h4 {
+            margin: 0 0 20px 0;
+            font-weight: 600;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        #lang-switcher {
+            background-color: var(--secondary-bg);
+            color: var(--accent-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        #lang-switcher:hover {
+            background-color: var(--accent-color);
+            color: var(--secondary-bg);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            color: var(--subtle-text);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+        
+        .tooltip-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            background-color: var(--border-color);
+            color: var(--secondary-bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: help;
+            user-select: none;
+        }
+        
+        .tooltip-text {
+            visibility: hidden;
+            width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -125px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 14px;
+            font-weight: normal;
+        }
+
+        .tooltip-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            background-color: #fcfcfc;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        input.invalid {
+            border-color: var(--danger-color);
+            box-shadow: 0 0 0 2px rgba(217, 54, 54, 0.2);
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0077ed;
+        }
+
+        .advanced-toggle {
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--accent-color);
+            margin-top: 15px;
+            display: inline-block;
+        }
+        
+        #advanced-section {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .nutrient-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 15px;
+            align-items: center;
+        }
+        
+        .nutrient-grid label {
+            margin: 0;
+            font-weight: normal;
+            color: var(--text-color);
+        }
+        
+        .btn-secondary {
+            background: none;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            margin-top: 15px;
+        }
+        .btn-secondary:hover {
+             background-color: rgba(0, 113, 227, 0.1);
+        }
+
+        #results-area h2 {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+        
+        #fertilizer-list {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .fertilizer-entry {
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            transition: box-shadow 0.2s;
+        }
+        
+        .entry-header {
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .entry-header h3 {
+             margin: 0;
+        }
+        .entry-header .arrow {
+            font-size: 20px;
+            transition: transform 0.3s;
+        }
+        .is-open .entry-header .arrow {
+            transform: rotate(180deg);
+        }
+        
+        .entry-content {
+            display: none;
+            padding: 0 20px 20px 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        .is-open .entry-content {
+            display: block;
+        }
+
+        .entry-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .entry-btn {
+            padding: 8px 12px;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 1px solid;
+            background: none;
+        }
+        .edit-btn {
+            border-color: var(--edit-color);
+            color: var(--edit-color);
+        }
+        .edit-btn:hover { background-color: rgba(245, 166, 35, 0.1); }
+        .delete-btn {
+            border-color: var(--danger-color);
+            color: var(--danger-color);
+        }
+        .delete-btn:hover { background-color: rgba(217, 54, 54, 0.1); }
+        
+        .details-section { margin-bottom: 15px; }
+        .details-section h4 { font-size: 16px; color: var(--subtle-text); padding-bottom: 8px; border-bottom: 1px solid var(--primary-bg); margin-bottom: 10px; }
+        
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+        }
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+        }
+        
+        .result-item, .input-item {
+            background-color: var(--primary-bg);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .result-item strong, .input-item strong {
+            display: block;
+            font-size: 18px;
+            color: var(--text-color);
+            font-weight: 600;
+        }
+        .result-item strong {
+            color: var(--accent-color);
+        }
+        
+        .result-item span, .input-item span {
+            font-size: 14px;
+            color: var(--subtle-text);
+        }
+        
+        #chart-container {
+            margin-top: 20px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- LEFT COLUMN: INPUT FORM -->
+        <div class="card" id="form-card">
+            <div class="header">
+                <h1 data-lang-key="appTitle">肥料计算器</h1>
+                <button id="lang-switcher">English</button>
+            </div>
+
+            <form id="fertilizer-form">
+                <input type="hidden" id="edit-index">
+                <!-- Primary Inputs -->
+                <div class="form-group">
+                    <label for="brand" data-lang-key="brandLabel">肥料品牌</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="brand" required>
+                        <div class="tooltip-icon">?
+                            <span class="tooltip-text" data-lang-key="brandTooltip">输入肥料的名称或品牌以便区分。</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="trees" data-lang-key="treesLabel">树木数量</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="trees" value="290" required>
+                        <div class="tooltip-icon">?
+                            <span class="tooltip-text" data-lang-key="treesTooltip">您需要施肥的树木总数。</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="rate" data-lang-key="rateLabel">每次施肥量 (公斤/棵)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="rate" placeholder="e.g., 2.5" required>
+                        <div class="tooltip-icon">?
+                            <span class="tooltip-text" data-lang-key="rateTooltip">每一次施肥时，每棵树所使用的肥料重量(公斤)。</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="frequency" data-lang-key="frequencyLabel">年施肥次数</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="frequency" placeholder="e.g., 12 for monthly" required>
+                        <div class="tooltip-icon">?
+                            <span class="tooltip-text" data-lang-key="frequencyTooltip">一年内总共施肥几次。例如：每月一次请填12，每季度一次请填4。</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="packetWeight" data-lang-key="packetWeightLabel">包装重量 (公斤)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="packetWeight" placeholder="e.g., 50" required>
+                        <div class="tooltip-icon">?
+                            <span class="tooltip-text" data-lang-key="packetWeightTooltip">单包肥料的重量(公斤)。</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="packetPrice" data-lang-key="packetPriceLabel">每包价格 (RM)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="packetPrice" required>
+                        <div class="tooltip-icon">?
+                             <span class="tooltip-text" data-lang-key="packetPriceTooltip">购买单包肥料的价格。</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Section Toggle -->
+                <div class="advanced-toggle" id="advanced-toggle">
+                    <span data-lang-key="advancedToggle">高级：营养价值分析 (可选)</span> &#9662;
+                </div>
+                
+                <!-- Advanced Section -->
+                <div id="advanced-section">
+                    <h3 data-lang-key="nutrientTitle">营养成分 (%)</h3>
+                    <div class="nutrient-grid" id="nutrient-list">
+                        <!-- Pre-filled nutrients will be injected here by JS -->
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="add-custom-nutrient" data-lang-key="addCustomNutrient" style="display: none;"> + 添加其他营养素</button>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 25px;" id="submit-btn" data-lang-key="addButton">添加并计算</button>
+            </form>
+        </div>
+
+        <!-- RIGHT COLUMN: RESULTS AND CHART -->
+        <div id="results-area">
+            <div class="card">
+                <h2 data-lang-key="chartTitle">图表对比</h2>
+                <div class="form-group">
+                    <label for="chart-metric" data-lang-key="chartMetricLabel">选择对比指标:</label>
+                    <select id="chart-metric" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <option value="annualCostPerTree" data-lang-key="chartOption1">年度单棵树成本 (RM)</option>
+                        <option value="pricePerKg" data-lang-key="chartOption2">每公斤价格 (RM)</option>
+                        <option value="pricePerKgNutrient" data-lang-key="chartOption3">每公斤营养素价格 (RM)</option>
+                    </select>
+                </div>
+                <div id="chart-container">
+                    <canvas id="fertilizer-chart"></canvas>
+                </div>
+            </div>
+            <div id="fertilizer-list">
+                <!-- Saved fertilizer entries will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- STATE MANAGEMENT ---
+    let fertilizers = [];
+    let currentLang = 'zh';
+    let myChart;
+
+    // --- DOM ELEMENTS ---
+    const form = document.getElementById('fertilizer-form');
+    const formCard = document.getElementById('form-card');
+    const submitBtn = document.getElementById('submit-btn');
+    const editIndexInput = document.getElementById('edit-index');
+    const langSwitcher = document.getElementById('lang-switcher');
+    const advancedToggle = document.getElementById('advanced-toggle');
+    const advancedSection = document.getElementById('advanced-section');
+    const nutrientList = document.getElementById('nutrient-list');
+    const fertilizerListContainer = document.getElementById('fertilizer-list');
+    const chartMetricSelector = document.getElementById('chart-metric');
+    const requiredInputs = ['brand', 'trees', 'rate', 'frequency', 'packetWeight', 'packetPrice'];
+
+    // --- LANGUAGE & STRINGS ---
+    const langStrings = {
+        zh: {
+            appTitle: "肥料计算器",
+            brandLabel: "肥料品牌", brandTooltip: "输入肥料的名称或品牌以便区分。",
+            treesLabel: "树木数量", treesTooltip: "您需要施肥的树木总数。",
+            rateLabel: "每次施肥量 (公斤/棵)", rateTooltip: "每一次施肥时，每棵树所使用的肥料重量(公斤)。",
+            frequencyLabel: "年施肥次数", frequencyTooltip: "一年内总共施肥几次。例如：每月一次请填12，每季度一次请填4。",
+            packetWeightLabel: "包装重量 (公斤)", packetWeightTooltip: "单包肥料的重量(公斤)。",
+            packetPriceLabel: "每包价格 (RM)", packetPriceTooltip: "购买单包肥料的价格。",
+            advancedToggle: "高级：营养价值分析 (可选)",
+            nutrientTitle: "营养成分 (%)",
+            addButton: "添加并计算",
+            updateButton: "保存更改",
+            chartTitle: "图表对比",
+            chartMetricLabel: "选择对比指标:",
+            chartOption1: "年度单棵树成本 (RM)", chartOption2: "每公斤价格 (RM)", chartOption3: "每公斤营养素价格 (RM)",
+            resultsTitle: "计算结果",
+            inputsTitle: "输入值",
+            annualCost: "年度总成本", annualCostPerTree: "年度单棵树成本",
+            pricePerKg: "每公斤价格", packetsAnnually: "年需购买包数",
+            totalNeed: "年度总需量", pricePerKgNutrient: "每公斤营养素价格",
+            noNutrientData: "无营养数据",
+            langSwitchTo: "English",
+            editBtn: "编辑", deleteBtn: "删除",
+            validationError: "请填写所有必填字段并确保数值大于0。",
+        },
+        en: {
+            appTitle: "Fertilizer Calculator",
+            brandLabel: "Fertilizer Brand", brandTooltip: "Enter the name or brand of the fertilizer for identification.",
+            treesLabel: "Number of Trees", treesTooltip: "The total number of trees you need to fertilize.",
+            rateLabel: "Fertilizer Rate (kg/tree)", rateTooltip: "The weight (kg) of fertilizer applied per tree, each time.",
+            frequencyLabel: "Applications per Year", frequencyTooltip: "How many times you apply fertilizer in one year. e.g., enter 12 for monthly, 4 for quarterly.",
+            packetWeightLabel: "Packet Weight (kg)", packetWeightTooltip: "The weight (kg) of a single packet of fertilizer.",
+            packetPriceLabel: "Price per Packet (RM)", packetPriceTooltip: "The price to purchase a single packet of fertilizer.",
+            advancedToggle: "Advanced: Nutrient Value Analysis (Optional)",
+            nutrientTitle: "Nutrient Content (%)",
+            addButton: "Add & Calculate",
+            updateButton: "Save Changes",
+            chartTitle: "Chart Comparison",
+            chartMetricLabel: "Select metric to compare:",
+            chartOption1: "Annual Cost per Tree (RM)", chartOption2: "Price per kg (RM)", chartOption3: "Price per kg of Nutrients (RM)",
+            resultsTitle: "Calculated Results",
+            inputsTitle: "Your Inputs",
+            annualCost: "Total Annual Cost", annualCostPerTree: "Annual Cost per Tree",
+            pricePerKg: "Price per kg", packetsAnnually: "Packets to Buy Annually",
+            totalNeed: "Total Annual Need", pricePerKgNutrient: "Price per kg of Nutrients",
+            noNutrientData: "No Nutrient Data",
+            langSwitchTo: "中文",
+            editBtn: "Edit", deleteBtn: "Delete",
+            validationError: "Please fill all required fields and ensure numbers are greater than 0.",
+        }
+    };
+    
+    // --- NUTRIENT SETUP ---
+    const predefinedNutrients = {
+        'Nitrogen (N)': '氮 (N)', 'Phosphorus (P)': '磷 (P)', 'Potassium (K)': '钾 (K)',
+        'Calcium (Ca)': '钙 (Ca)', 'Magnesium (Mg)': '镁 (Mg)', 'Sulfur (S)': '硫 (S)',
+        'Iron (Fe)': '铁 (Fe)', 'Manganese (Mn)': '锰 (Mn)', 'Zinc (Zn)': '锌 (Zn)',
+        'Copper (Cu)': '铜 (Cu)', 'Boron (B)': '硼 (B)', 'Molybdenum (Mo)': '钼 (Mo)'
+    };
+    
+    function createNutrientInput(nameEn, nameZh, value = '') {
+        const container = document.createElement('div');
+        const label = document.createElement('label');
+        label.dataset.langEn = nameEn;
+        label.dataset.langZh = nameZh;
+        label.textContent = currentLang === 'zh' ? nameZh : nameEn;
+
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.value = value;
+        input.placeholder = '0';
+        input.step = 'any';
+        input.min = '0';
+        input.dataset.nutrientNameEn = nameEn;
+
+        container.appendChild(label);
+        container.appendChild(input);
+        return container;
+    }
+    
+    function populateNutrients(nutrientData = {}) {
+        nutrientList.innerHTML = '';
+        Object.entries(predefinedNutrients).forEach(([nameEn, nameZh]) => {
+             nutrientList.appendChild(createNutrientInput(nameEn, nameZh, nutrientData[nameEn] || ''));
+        });
+    }
+    
+    // --- LANGUAGE FUNCTIONS ---
+    function setLanguage(lang) {
+        currentLang = lang;
+        localStorage.setItem('fertilizerLang', lang);
+        document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+
+        document.querySelectorAll('[data-lang-key]').forEach(el => {
+            const key = el.dataset.langKey;
+            if (langStrings[lang][key]) {
+                const elType = el.tagName;
+                if (elType === 'BUTTON' || elType === 'OPTION' || (elType === 'SPAN' && el.parentElement.classList.contains('advanced-toggle'))) {
+                    el.textContent = langStrings[lang][key];
+                } else if(el.parentElement.classList.contains('tooltip-icon')) {
+                     el.textContent = langStrings[lang][key];
+                } else {
+                    el.innerHTML = langStrings[lang][key];
+                }
+            }
+        });
+        
+        langSwitcher.textContent = langStrings[lang].langSwitchTo;
+        
+        document.querySelectorAll('.nutrient-grid label').forEach(label => {
+            label.textContent = lang === 'zh' ? label.dataset.langZh : label.dataset.langEn;
+        });
+
+        const isEditing = editIndexInput.value !== '';
+        submitBtn.textContent = isEditing ? langStrings[lang].updateButton : langStrings[lang].addButton;
+        
+        renderFertilizerList();
+    }
+
+    langSwitcher.addEventListener('click', () => {
+        setLanguage(currentLang === 'zh' ? 'en' : 'zh');
+    });
+
+    // --- CALCULATION LOGIC ---
+    function calculate(data) {
+        const trees = parseFloat(data.trees);
+        const rate = parseFloat(data.rate);
+        const frequency = parseFloat(data.frequency);
+        const packetWeight = parseFloat(data.packetWeight);
+        const packetPrice = parseFloat(data.packetPrice);
+        
+        if ([trees, rate, frequency, packetWeight, packetPrice].some(v => isNaN(v) || v <= 0)) return null;
+
+        const totalAnnualNeed = trees * rate * frequency;
+        const packetsAnnually = Math.ceil(totalAnnualNeed / packetWeight);
+        const totalAnnualCost = packetsAnnually * packetPrice;
+        const annualCostPerTree = totalAnnualCost / trees;
+        const pricePerKg = packetPrice / packetWeight;
+
+        let pricePerKgNutrient = null;
+        const totalNutrientPercent = Object.values(data.nutrients).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+        
+        if (totalNutrientPercent > 0) {
+            pricePerKgNutrient = pricePerKg / (totalNutrientPercent / 100);
+        }
+
+        return {
+            totalAnnualCost: totalAnnualCost.toFixed(2),
+            annualCostPerTree: annualCostPerTree.toFixed(2),
+            pricePerKg: pricePerKg.toFixed(2),
+            packetsAnnually: packetsAnnually,
+            totalNeed: totalAnnualNeed.toFixed(2), // FIX: Renamed from totalAnnualNeed to totalNeed
+            pricePerKgNutrient: pricePerKgNutrient ? pricePerKgNutrient.toFixed(2) : null
+        };
+    }
+    
+    // --- UI & RENDER FUNCTIONS ---
+    function renderFertilizerList() {
+        fertilizerListContainer.innerHTML = '';
+        fertilizers.forEach((fert, index) => {
+            const results = calculate(fert);
+            if (!results) return;
+
+            const entryDiv = document.createElement('div');
+            entryDiv.className = 'fertilizer-entry';
+            entryDiv.dataset.index = index;
+            
+            const lang = currentLang;
+            const s = langStrings[lang];
+
+            const inputItems = `
+                <div class="input-item"><strong>${fert.trees}</strong><span>${s.treesLabel}</span></div>
+                <div class="input-item"><strong>${fert.rate} kg</strong><span>${s.rateLabel}</span></div>
+                <div class="input-item"><strong>${fert.frequency}</strong><span>${s.frequencyLabel}</span></div>
+                <div class="input-item"><strong>${fert.packetWeight} kg</strong><span>${s.packetWeightLabel}</span></div>
+                <div class="input-item"><strong>RM ${fert.packetPrice}</strong><span>${s.packetPriceLabel}</span></div>
+            `;
+            
+            const resultItems = `
+                <div class="result-item"><strong>RM ${results.totalAnnualCost}</strong><span>${s.annualCost}</span></div>
+                <div class="result-item"><strong>RM ${results.annualCostPerTree}</strong><span>${s.annualCostPerTree}</span></div>
+                <div class="result-item"><strong>RM ${results.pricePerKg}</strong><span>${s.pricePerKg}</span></div>
+                <div class="result-item"><strong>${results.packetsAnnually}</strong><span>${s.packetsAnnually}</span></div>
+                <div class="result-item"><strong>${results.totalNeed} kg</strong><span>${s.totalNeed}</span></div>
+                <div class="result-item"><strong>${results.pricePerKgNutrient ? `RM ${results.pricePerKgNutrient}` : s.noNutrientData}</strong><span>${s.pricePerKgNutrient}</span></div>
+            `;
+
+            entryDiv.innerHTML = `
+                <div class="entry-header">
+                    <h3>${fert.brand}</h3>
+                    <div class="arrow">&#9662;</div>
+                </div>
+                <div class="entry-content">
+                    <div class="details-section">
+                        <h4 data-lang-key="inputsTitle">${s.inputsTitle}</h4>
+                        <div class="input-grid">${inputItems}</div>
+                    </div>
+                     <div class="details-section">
+                        <h4 data-lang-key="resultsTitle">${s.resultsTitle}</h4>
+                        <div class="result-grid">${resultItems}</div>
+                    </div>
+                    <div class="entry-controls">
+                        <button class="entry-btn edit-btn" data-lang-key="editBtn">${s.editBtn}</button>
+                        <button class="entry-btn delete-btn" data-lang-key="deleteBtn">${s.deleteBtn}</button>
+                    </div>
+                </div>
+            `;
+            fertilizerListContainer.appendChild(entryDiv);
+        });
+        updateChart();
+    }
+    
+    // --- CHART LOGIC ---
+    function updateChart() {
+        if (myChart) myChart.destroy();
+        const ctx = document.getElementById('fertilizer-chart').getContext('2d');
+        const metric = chartMetricSelector.value;
+        
+        const chartData = fertilizers.map(fert => {
+            const calcs = calculate(fert);
+            return {
+                brand: fert.brand,
+                value: calcs ? parseFloat(calcs[metric]) : 0,
+                hasNutrients: calcs && calcs.pricePerKgNutrient !== null
+            };
+        });
+        
+        const filteredData = metric === 'pricePerKgNutrient' ? chartData.filter(d => d.hasNutrients) : chartData;
+
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: filteredData.map(d => d.brand),
+                datasets: [{
+                    label: chartMetricSelector.options[chartMetricSelector.selectedIndex].text,
+                    data: filteredData.map(d => d.value),
+                    backgroundColor: 'rgba(0, 113, 227, 0.6)',
+                    borderColor: 'rgba(0, 113, 227, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { callback: value => 'RM ' + value } } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: context => `RM ${context.parsed.y.toFixed(2)}` } }
+                }
+            }
+        });
+    }
+    
+    // --- VALIDATION ---
+    function validateForm() {
+        let isValid = true;
+        requiredInputs.forEach(id => {
+            const input = document.getElementById(id);
+            input.classList.remove('invalid');
+            let value = input.value.trim();
+            if (input.type === 'number') {
+                if (value === '' || isNaN(parseFloat(value)) || parseFloat(value) <= 0) {
+                    isValid = false;
+                    input.classList.add('invalid');
+                }
+            } else if (value === '') {
+                 isValid = false;
+                 input.classList.add('invalid');
+            }
+        });
+        if (!isValid) {
+            alert(langStrings[currentLang].validationError);
+        }
+        return isValid;
+    }
+
+    // --- EVENT LISTENERS ---
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!validateForm()) return;
+
+        const nutrients = {};
+        nutrientList.querySelectorAll('input[type="number"]').forEach(input => {
+            if (input.value && parseFloat(input.value) > 0) {
+                nutrients[input.dataset.nutrientNameEn] = parseFloat(input.value);
+            }
+        });
+
+        const fertilizerData = {
+            id: editIndexInput.value !== '' ? fertilizers[parseInt(editIndexInput.value)].id : Date.now(),
+            brand: document.getElementById('brand').value,
+            trees: document.getElementById('trees').value,
+            rate: document.getElementById('rate').value,
+            frequency: document.getElementById('frequency').value,
+            packetWeight: document.getElementById('packetWeight').value,
+            packetPrice: document.getElementById('packetPrice').value,
+            nutrients: nutrients
+        };
+
+        const editIndex = editIndexInput.value;
+        if (editIndex !== '') {
+            fertilizers[parseInt(editIndex, 10)] = fertilizerData;
+        } else {
+            fertilizers.push(fertilizerData);
+        }
+        
+        resetForm();
+        saveAndRender();
+    });
+
+    fertilizerListContainer.addEventListener('click', (e) => {
+        const entryDiv = e.target.closest('.fertilizer-entry');
+        if (!entryDiv) return;
+        const index = parseInt(entryDiv.dataset.index, 10);
+
+        if (e.target.classList.contains('delete-btn')) {
+            fertilizers.splice(index, 1);
+            saveAndRender();
+        }
+        else if (e.target.classList.contains('edit-btn')) {
+            const dataToEdit = fertilizers[index];
+            if (!dataToEdit) return;
+            
+            requiredInputs.forEach(id => {
+                document.getElementById(id).value = dataToEdit[id] || '';
+            });
+            
+            populateNutrients(dataToEdit.nutrients);
+            advancedSection.style.display = 'block';
+            advancedToggle.innerHTML = `<span data-lang-key="advancedToggle">${langStrings[currentLang].advancedToggle}</span> &#9652;`;
+
+            editIndexInput.value = index;
+            submitBtn.textContent = langStrings[currentLang].updateButton;
+            formCard.scrollIntoView({ behavior: 'smooth' });
+        }
+        else if (e.target.closest('.entry-header')) {
+            entryDiv.classList.toggle('is-open');
+        }
+    });
+
+    advancedToggle.addEventListener('click', () => {
+        const isHidden = advancedSection.style.display === 'none';
+        advancedSection.style.display = isHidden ? 'block' : 'none';
+        const arrow = isHidden ? '&#9652;' : '&#9662;';
+        advancedToggle.querySelector('span').innerHTML = `${langStrings[currentLang].advancedToggle} ${arrow}`;
+    });
+    
+    chartMetricSelector.addEventListener('change', updateChart);
+
+    // --- INITIALIZATION ---
+    function resetForm() {
+        form.reset();
+        editIndexInput.value = '';
+        submitBtn.textContent = langStrings[currentLang].addButton;
+        submitBtn.dataset.langKey = 'addButton';
+        requiredInputs.forEach(id => document.getElementById(id).classList.remove('invalid'));
+        populateNutrients();
+        advancedSection.style.display = 'none';
+        advancedToggle.innerHTML = `<span data-lang-key="advancedToggle">${langStrings[currentLang].advancedToggle}</span> &#9662;`;
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('fertilizers', JSON.stringify(fertilizers));
+        renderFertilizerList();
+    }
+
+    function loadInitialData() {
+        const savedLang = localStorage.getItem('fertilizerLang') || 'zh';
+        const savedFertilizers = localStorage.getItem('fertilizers');
+        if (savedFertilizers) {
+            fertilizers = JSON.parse(savedFertilizers);
+        }
+        populateNutrients();
+        setLanguage(savedLang);
+    }
+
+    loadInitialData();
+});
+</script>
+
+</body>
+</html>
