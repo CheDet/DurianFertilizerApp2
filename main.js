@@ -1,10 +1,10 @@
-// main.js
+// main.js - CORRECTED VERSION
 
 import { supabase } from './supabaseClient.js';
 
 // --- Global State ---
 let masterFertilizers = [];
-let userCalculations = [];
+let userCalculations = []; // This was the missing piece for global state
 let currentLang = localStorage.getItem('fertilizerAppLang') || 'zh';
 
 // --- Language Strings ---
@@ -130,7 +130,7 @@ function setLanguage(lang) {
 
     langSwitcherBtn.textContent = langStrings[lang].langSwitchTo;
     
-    // Re-render dynamic content
+    // Re-render all dynamic content with the new language
     renderMasterFertilizerTable();
     renderUserCalculations();
 }
@@ -143,8 +143,7 @@ async function fetchMasterFertilizers() {
         masterListContainer.innerHTML = `<p>${langStrings[currentLang].errorLoading}</p>`;
         return;
     }
-    masterFertilizers = data;
-    renderMasterFertilizerTable();
+    masterFertilizers = data; // Store in global state
 }
 
 async function fetchUserCalculations() {
@@ -154,8 +153,7 @@ async function fetchUserCalculations() {
         savedCalculationsList.innerHTML = `<p>${langStrings[currentLang].errorLoading}</p>`;
         return;
     }
-    userCalculations = data;
-    renderUserCalculations();
+    userCalculations = data; // Store in global state
 }
 
 function renderMasterFertilizerTable() {
@@ -319,7 +317,8 @@ adminForm.addEventListener('submit', async (e) => {
         alert(langStrings[currentLang].successSaving);
         adminForm.reset();
         closeModal(adminModal);
-        fetchMasterFertilizers();
+        await fetchMasterFertilizers(); // Re-fetch and then render
+        renderMasterFertilizerTable();
     }
 });
 
@@ -344,13 +343,13 @@ calculationForm.addEventListener('submit', async (e) => {
     } else {
         calculationForm.reset();
         closeModal(calculationModal);
-        fetchUserCalculations();
+        await fetchUserCalculations(); // Re-fetch and then render
+        renderUserCalculations();
     }
 });
 
 // Event Delegation for dynamic buttons
 document.addEventListener('click', async (e) => {
-    // Calculate button
     if (e.target.classList.contains('calc-btn')) {
         const fertId = e.target.dataset.id;
         const masterFert = masterFertilizers.find(f => f.id == fertId);
@@ -362,12 +361,10 @@ document.addEventListener('click', async (e) => {
         openModal(calculationModal);
     }
 
-    // Expand/collapse
     if (e.target.closest('.entry-header')) {
         e.target.closest('.calculation-entry').classList.toggle('is-open');
     }
 
-    // Delete button
     if (e.target.classList.contains('delete-btn')) {
         const entry = e.target.closest('.calculation-entry');
         const calcId = entry.dataset.id;
@@ -376,12 +373,12 @@ document.addEventListener('click', async (e) => {
             if (error) {
                 alert(langStrings[currentLang].errorDeleting + error.message);
             } else {
-                fetchUserCalculations();
+                await fetchUserCalculations(); // Re-fetch and then render
+                renderUserCalculations();
             }
         }
     }
     
-    // Edit button
     if (e.target.classList.contains('edit-btn')) {
         const calcData = JSON.parse(e.target.dataset.calc);
         
@@ -400,9 +397,11 @@ document.addEventListener('click', async (e) => {
 // --- INITIALIZATION ---
 async function init() {
     setupAdminNutrientList();
-    setLanguage(currentLang); // This will render the initial language
+    // 1. Fetch all data first
     await fetchMasterFertilizers();
     await fetchUserCalculations();
+    // 2. Now render the entire page in the correct language
+    setLanguage(currentLang);
 }
 
 init();
