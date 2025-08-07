@@ -1,0 +1,190 @@
+/* style.css */
+
+:root {
+    --primary-bg: #f5f5f7;
+    --secondary-bg: #ffffff;
+    --text-color: #1d1d1f;
+    --subtle-text: #6e6e73;
+    --accent-color: #0071e3;
+    --border-color: #d2d2d7;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --border-radius: 12px;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background-color: var(--primary-bg);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.card {
+    background-color: var(--secondary-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 25px;
+}
+
+h1, h2, h3 {
+    margin: 0 0 20px 0;
+    font-weight: 600;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+}
+
+.btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.btn:hover {
+    background-color: #0077ed;
+}
+
+/* Master Table Styles */
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th, td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+th {
+    font-weight: 500;
+    color: var(--subtle-text);
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* Saved Calculations Styles */
+#saved-calculations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.calculation-entry {
+    background-color: var(--secondary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+.entry-header {
+    padding: 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.entry-header h3 { margin: 0; }
+.entry-header .arrow { font-size: 20px; transition: transform 0.3s; }
+.is-open .entry-header .arrow { transform: rotate(180deg); }
+
+.entry-content {
+    display: none;
+    padding: 0 20px 20px 20px;
+    border-top: 1px solid var(--border-color);
+}
+.is-open .entry-content { display: block; }
+.details-section { margin-top: 15px; }
+.details-section h4 { font-size: 16px; color: var(--subtle-text); margin-bottom: 10px; }
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 15px;
+}
+.detail-item { background-color: var(--primary-bg); padding: 10px; border-radius: 8px; }
+.detail-item strong { display: block; font-size: 18px; color: var(--text-color); font-weight: 600; }
+.detail-item span { font-size: 14px; color: var(--subtle-text); }
+.entry-controls { display: flex; gap: 10px; margin-top: 20px; }
+.entry-btn { padding: 8px 12px; font-size: 14px; border-radius: 6px; cursor: pointer; border: 1px solid; background: none; }
+.edit-btn { border-color: #f5a623; color: #f5a623; }
+.delete-btn { border-color: #d93636; color: #d93636; }
+
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: var(--secondary-bg);
+    margin: auto;
+    padding: 30px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+}
+
+.close-btn {
+    color: var(--subtle-text);
+    position: absolute;
+    top: 15px; right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.close-btn:hover { color: var(--text-color); }
+
+/* Form Styles */
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; font-weight: 500; color: var(--subtle-text); margin-bottom: 8px; }
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.nutrient-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.loader {
+    text-align: center;
+    padding: 40px;
+    color: var(--subtle-text);
+}
